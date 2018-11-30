@@ -2,6 +2,7 @@
     Mathematical Logic through Programming
     by Gonczarowski and Nisan.
     File name: code/predicates/semantics.py """
+import itertools
 
 from predicates.syntax import *
 
@@ -103,3 +104,18 @@ class Model:
         for formula in formulae:
             assert type(formula) is Formula
         # Task 7.9
+        for formula in formulae:
+            free_variables = formula.free_variables()
+            if len(free_variables) == 0:
+                if not self.evaluate_formula(formula):
+                    return False
+            else:
+                numOfVar = len(free_variables)
+                combinations = list(itertools.product(self.universe, repeat=numOfVar))
+                result = []
+                for combination in combinations:
+                    result.append(dict(zip(free_variables, combination)))
+                for combination in result:
+                    if not self.evaluate_formula(formula, combination):
+                        return False
+        return True

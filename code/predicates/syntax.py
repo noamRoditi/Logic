@@ -245,6 +245,8 @@ class Formula:
         if s[0] is "(":  # binary case
             left_formula, remainder = Formula.parse_prefix(s[1:])
             root = remainder[0]
+            if root == '-':
+                root = remainder[0:2]
             right_formula, remainder = Formula.parse_prefix(remainder[len(root):])
             return Formula(root, left_formula, right_formula), remainder[1:]
         if is_relation(s[0]):
