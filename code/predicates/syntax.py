@@ -111,6 +111,13 @@ class Term:
         """ Return a set of pairs (function_name, arity) for all function names
             that appear in this term """
         # Task 8.1.1
+        term_pairs = set()
+        if is_function(self.root):
+            function_pair = self.root, len(self.arguments)
+            term_pairs.add(function_pair)
+            for argument in self.arguments:
+                term_pairs = term_pairs | argument.functions()
+        return term_pairs
 
     def substitute(self, substitution_map, forbidden_variables=set()):
         """ Return a term obtained from this term where all the occurrences of
@@ -244,7 +251,10 @@ class Formula:
             return Formula('~', formula), remainder
         if s[0] is "(":  # binary case
             left_formula, remainder = Formula.parse_prefix(s[1:])
-            root = remainder[0]
+            if remainder[0] is "-":
+                root = "->"
+            else:
+                root = remainder[0]
             right_formula, remainder = Formula.parse_prefix(remainder[len(root):])
             return Formula(root, left_formula, right_formula), remainder[1:]
         if is_relation(s[0]):
@@ -301,11 +311,45 @@ class Formula:
         """ Return a set of pairs (function_name, arity) for all function names
             that appear in this formula """
         # Task 8.1.2
+        formula_pairs = set()
+        if is_quantifier(self.root):
+            formula_pairs = formula_pairs | self.predicate.functions()
+        if is_unary(self.root):
+            formula_pairs = formula_pairs | self.first.functions()
+        if is_binary(self.root):
+            formula_pairs = formula_pairs | self.first.functions() | self.second.functions()
+        if is_equality(self.root):
+            formula_pairs = formula_pairs | self.first.functions() | self.second.functions()
+        if is_relation(self.root):
+            for argument in self.arguments:
+                formula_pairs = formula_pairs | argument.functions()
+        if is_function(self.root):
+            formula_pairs.add((self.root, len(self.arguments)))
+            for argument in self.arguments:
+                formula_pairs = formula_pairs | argument.functions()
+        return formula_pairs
 
     def relations(self):
         """ Return a set of pairs (relation_name, arity) for all relation names
             that appear in this formula """
         # Task 8.1.3
+        formula_relations_pairs = set()
+        if is_quantifier(self.root):
+            formula_relations_pairs = formula_relations_pairs | self.predicate.relations()
+        if is_unary(self.root):
+            if type(self.first) is Formula:
+                formula_relations_pairs = formula_relations_pairs | self.first.relations()
+        if is_binary(self.root) or is_equality(self.root):
+            if type(self.first) is Formula:
+                formula_relations_pairs = formula_relations_pairs | self.first.relations()
+            if type(self.second) is Formula:
+                formula_relations_pairs = formula_relations_pairs | self.second.relations()
+        if is_relation(self.root):
+            formula_relations_pairs.add((self.root, len(self.arguments)))
+            for argument in self.arguments:
+                if type(argument) is Formula:
+                    formula_relations_pairs = formula_relations_pairs | argument.relations()
+        return formula_relations_pairs
 
     def substitute(self, substitution_map, forbidden_variables=set()):
         """ Return a first-order formula obtained from this formula where the
