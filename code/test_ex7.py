@@ -44,4 +44,4 @@ if __name__ == '__main__':
     test_task6(True)
     test_task7(True)
     test_task8(True)
-    test_task9(True)
+    # test_task9(True)
