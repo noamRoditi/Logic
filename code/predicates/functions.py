@@ -128,6 +128,64 @@ def replace_functions_with_relations_in_formula(formula):
                 for f in formula.functions()}.intersection(
                     {r[0] for r in formula.relations()})) == 0
     # Task 8.5
+    return replace_functions_with_relations_in_formula_helper(formula)
+
+def replace_functions_with_relations_in_formula_helper(formula):
+    if is_equality(formula.root):
+        if is_function(formula.first.root) and not is_function(formula.second.root):
+            return make_function_into_relation(formula.first,formula.second)
+        elif is_function(formula.second.root) and not is_function(formula.first.root):
+            return make_function_into_relation(formula.second, formula.first)
+        # elif is_function(formula.second.root) and  is_function(formula.first.root):
+        # todo
+        else:
+            return formula
+    elif is_binary(formula.root):
+        return Formula(formula.root,replace_functions_with_relations_in_formula_helper(formula.first),
+                       replace_functions_with_relations_in_formula_helper(formula.second))
+    elif is_unary(formula.root):
+        return Formula(formula.root,replace_functions_with_relations_in_formula_helper(formula.first))
+    elif is_quantifier(formula.root):
+        return Formula(formula.root,formula.first,
+                       replace_functions_with_relations_in_formula_helper(formula.second))
+    elif is_relation(formula.root):
+        if len(formula.functions()) == 0:
+            return formula
+        else:
+            result = []
+            for argument in formula.arguments:
+                if is_function(argument.root):
+                    result = result + compile_term_helper(argument)[1]
+            prev_formula = replace_terms_with_vars(formula,result)
+            for compile_term in reversed(result):
+                prev_formula = Formula('A',compile_term.first.root,
+                                           Formula('->',make_function_into_relation(compile_term.second,compile_term.first),
+                                                   prev_formula))
+            return prev_formula
+    else: #case this is a function or variable
+        if is_variable(formula.root) or is_constant(formula.root):
+            return formula
+        else:
+            return replace_functions_with_relations_in_formula_helper(make_function_into_relation(formula))
+def replace_terms_with_vars(relation, compiled_terms):
+    dic = {}
+    for term in compiled_terms:
+        dic[term.second] = term.first
+    arguments = []
+    for argument in relation.arguments:
+        if is_function(argument.root):
+            arguments.append(dic[argument])
+        else:
+            arguments.append(argument)
+    return Formula(relation.root,arguments)
+
+def make_function_into_relation(term,var = None):
+    upper_case_name = str(term.root)[0].upper() + str(term.root)[1:]
+    if var is None:
+        return Formula(upper_case_name,term.arguments)
+    new_arguments = term.arguments
+    new_arguments.insert(0,var)
+    return Formula(upper_case_name,new_arguments)
 
 def replace_functions_with_relations_in_formulae(formulae):
     """ Return a set of function-free formulae that is equivalent to the given
