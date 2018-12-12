@@ -129,6 +129,7 @@ def replace_functions_with_relations_in_formula(formula):
                     {r[0] for r in formula.relations()})) == 0
     # Task 8.5
 
+
 def replace_functions_with_relations_in_formulae(formulae):
     """ Return a set of function-free formulae that is equivalent to the given
         formulae set that may contain function invocations. This equivalence
@@ -198,3 +199,27 @@ def make_equality_as_SAME(model):
     for key in model.meaning:
         assert not is_function(key)
     # Task 8.9
+    if model.meaning.get("SAME") is None:
+        return model
+    equal_dict = dict()
+    for equation in model.meaning["SAME"]:
+        left_side = equation[0]
+        right_side = equation[1]
+        if equation[0] is not equation[1]:
+            if equal_dict.get(right_side) is None:
+                equal_dict[left_side] = right_side
+    new_model = copy(model)
+    new_model.meaning.pop("SAME")
+    for element in new_model.meaning:
+        if is_constant(element) or is_variable(element):
+            if equal_dict.get(new_model.meaning[element]) is not None:
+                new_model.meaning[element] = equal_dict[new_model.meaning[element]]
+            continue
+        elemnet_meaning_set = set()
+        [elemnet_meaning_set.add(assign) for number in equal_dict for assign in new_model.meaning[element] if number not in assign]
+        new_model.meaning[element] = elemnet_meaning_set
+    for item in new_model.universe:
+        if equal_dict.get(item) is not None:
+            new_model.universe.remove(item)
+            break
+    return new_model
