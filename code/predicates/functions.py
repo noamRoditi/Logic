@@ -170,11 +170,11 @@ def replace_functions_with_relations_in_formula_helper(formula):
 def replace_terms_with_vars(relation, compiled_terms):
     dic = {}
     for term in compiled_terms:
-        dic[term.second] = term.first
+        dic[term.second.root] = term.first
     arguments = []
     for argument in relation.arguments:
         if is_function(argument.root):
-            arguments.append(dic[argument])
+            arguments.append(dic[argument.root])
         else:
             arguments.append(argument)
     return Formula(relation.root,arguments)
