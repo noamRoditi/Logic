@@ -61,25 +61,53 @@ class Model:
         # Task 7.8
         if is_unary(formula.root):
             return not Model.evaluate_formula(self, formula.first, assignment)
-        if is_binary(formula.root):
+        elif is_binary(formula.root):
             return self.formula_evaluation_is_binary(formula,assignment)
-        if is_equality(formula.root):
+        elif is_equality(formula.root):
             return Model.evaluate_term(self, formula.first, assignment) is Model.evaluate_term(self, formula.second, assignment)
-        if is_relation(formula.root):
+        elif is_relation(formula.root):
             argument = tuple([Model.evaluate_term(self, argument, assignment) for argument in formula.arguments])
             return argument in self.meaning[formula.root]
-        if is_quantifier(formula.root):
-            return self.formula_evaluation_is_quantifier(formula, assignment)
+        elif is_quantifier(formula.root):
+            return self.formula_evaluate_quantifier(formula, assignment)
 
+
+    def formula_evaluate_quantifier(self, formula, assigment={}):
+        given_assigment = None
+        if formula.variable in assigment:
+            given_assigment = assigment[formula.variable]
+        if formula.root == "E":
+            for value in self.universe:
+                assigment.update({formula.variable:value})
+                if self.evaluate_formula(formula.predicate,assigment):
+                    del assigment[formula.variable]
+                    if given_assigment:
+                        assigment[formula.variable] = given_assigment
+                    return True
+                del assigment[formula.variable]
+                if given_assigment:
+                    assigment[formula.variable] = given_assigment
+            return False
+        else:
+            for value in self.universe:
+                assigment.update({formula.variable: value})
+                if not self.evaluate_formula(formula.predicate, assigment):
+                    del assigment[formula.variable]
+                    if given_assigment:
+                        assigment[formula.variable] = given_assigment
+                    return False
+            del assigment[formula.variable]
+            if given_assigment:
+                assigment[formula.variable] = given_assigment
+            return True
     def formula_evaluation_is_binary(self, formula, assignment):
-        if formula.root == '&':
-            return Model.evaluate_formula(self, formula.first, assignment) and \
-                   Model.evaluate_formula(self, formula.second, assignment)
-        if formula.root == '|':
-            return Model.evaluate_formula(self, formula.first, assignment) or \
-                   Model.evaluate_formula(self, formula.second, assignment)
-        return Model.evaluate_formula(self, formula.first, assignment) or not \
-            Model.evaluate_formula(self, formula.second, assignment)
+        if formula.root == "&":
+            return self.evaluate_formula(formula.first, assignment) and self.evaluate_formula(formula.second, assignment)
+        if formula.root == "|":
+            return self.evaluate_formula(formula.first, assignment) or self.evaluate_formula(formula.second, assignment)
+        else:
+            return False if (self.evaluate_formula(formula.first, assignment)
+                             and not self.evaluate_formula(formula.second, assignment)) else True
 
     def formula_evaluation_is_quantifier(self,formula, assignment):
         if formula.root == 'A':

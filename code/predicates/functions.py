@@ -132,22 +132,15 @@ def replace_functions_with_relations_in_formula(formula):
 
 def replace_functions_with_relations_in_formula_helper(formula):
     if is_equality(formula.root):
-        if is_function(formula.first.root) and not is_function(formula.second.root):
-            return make_function_into_relation(formula.first,formula.second)
-        elif is_function(formula.second.root) and not is_function(formula.first.root):
-            return make_function_into_relation(formula.second, formula.first)
-        # elif is_function(formula.second.root) and  is_function(formula.first.root):
-        # todo
-        else:
-            return formula
+        return replace_equality(formula)
     elif is_binary(formula.root):
         return Formula(formula.root,replace_functions_with_relations_in_formula_helper(formula.first),
                        replace_functions_with_relations_in_formula_helper(formula.second))
     elif is_unary(formula.root):
         return Formula(formula.root,replace_functions_with_relations_in_formula_helper(formula.first))
     elif is_quantifier(formula.root):
-        return Formula(formula.root,formula.first,
-                       replace_functions_with_relations_in_formula_helper(formula.second))
+        return Formula(formula.root,formula.variable,
+                       replace_functions_with_relations_in_formula_helper(formula.predicate))
     elif is_relation(formula.root):
         if len(formula.functions()) == 0:
             return formula
@@ -167,6 +160,39 @@ def replace_functions_with_relations_in_formula_helper(formula):
             return formula
         else:
             return replace_functions_with_relations_in_formula_helper(make_function_into_relation(formula))
+def replace_equality(formula):
+    if is_function(formula.first.root) and not is_function(formula.second.root):
+        result = []
+        for argument in formula.first.arguments:
+            if is_function(argument.root):
+                result = result + compile_term_helper(argument)[1]
+        if len(result) == 0:
+            return make_function_into_relation(formula.first, formula.second)
+        prev_formula = make_function_into_relation(replace_terms_with_vars(formula.first, result), formula.second)
+        for compile_term in reversed(result):
+            prev_formula = Formula('A', compile_term.first.root,
+                                   Formula('->',
+                                           make_function_into_relation(compile_term.second, compile_term.first),
+                                           prev_formula))
+        return prev_formula
+    elif is_function(formula.second.root) and not is_function(formula.first.root):
+        result = []
+        for argument in formula.second.arguments:
+            if is_function(argument.root):
+                result = result + compile_term_helper(argument)[1]
+        if len(result) == 0:
+            return make_function_into_relation(formula.second, formula.first)
+        prev_formula = make_function_into_relation(replace_terms_with_vars(formula.second, result), formula.first)
+        for compile_term in reversed(result):
+            prev_formula = Formula('A', compile_term.first.root,
+                                   Formula('->',
+                                           make_function_into_relation(compile_term.second, compile_term.first),
+                                           prev_formula))
+        return prev_formula
+    # elif is_function(formula.second.root) and  is_function(formula.first.root):
+    # todo
+    else:
+        return formula
 def replace_terms_with_vars(relation, compiled_terms):
     dic = {}
     for term in compiled_terms:
@@ -177,6 +203,8 @@ def replace_terms_with_vars(relation, compiled_terms):
             arguments.append(dic[argument.root])
         else:
             arguments.append(argument)
+    if is_function(relation.root):
+        return Term(relation.root,arguments)
     return Formula(relation.root,arguments)
 
 def make_function_into_relation(term,var = None):
