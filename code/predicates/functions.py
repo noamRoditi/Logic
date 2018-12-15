@@ -189,8 +189,12 @@ def replace_equality(formula):
                                            make_function_into_relation(compile_term.second, compile_term.first),
                                            prev_formula))
         return prev_formula
-    # elif is_function(formula.second.root) and  is_function(formula.first.root):
-    # todo
+    elif is_function(formula.second.root) and  is_function(formula.first.root):
+        formula1 = replace_functions_with_relations_in_formula_helper(make_function_into_relation(formula.first,"z"))
+        formula2 = replace_functions_with_relations_in_formula_helper(make_function_into_relation(formula.second,"z"))
+        left_formula = Formula("->",formula1,formula2)
+        right_formula = Formula("->",formula2,formula1)
+        return Formula("A","z",Formula("&",left_formula,right_formula))
     else:
         return formula
 def replace_terms_with_vars(relation, compiled_terms):
@@ -240,7 +244,29 @@ def replace_functions_with_relations_in_formulae(formulae):
                                set.union(*[{r[0] for r in formula.relations()}
                                            for formula in formulae]))) == 0
     # Task 8.6
-        
+    formulae_without_functions = set()
+    for formula in formulae:
+        formulae_without_functions.add(replace_functions_with_relations_in_formula(formula))
+    function_set = set()
+    for formula in formulae:
+        function_set = function_set.union(formula.functions())
+    for function in function_set:
+        arguments = []
+        for i in range(function[1]):
+            arguments.append(Term("x" + str(i + 1)))
+        left_formula = Formula("E","z",Formula(str(function[0])[0].upper() + str(function[0])[1:],
+                                                [Term("z")]+arguments))
+        formula1 = Formula(str(function[0])[0].upper() + str(function[0])[1:],
+                           [Term("z1")] + arguments)
+        formula2 = Formula(str(function[0])[0].upper() + str(function[0])[1:],
+                            [Term("z2")] + arguments)
+        right_formula = Formula("A","z1",
+                Formula("A","z2",Formula("->",Formula("&",formula1,formula2),Formula("=",Term("z1"),Term("z2")))))
+        final_formula = Formula("&",left_formula,right_formula)
+        for j in arguments[1:]:
+            final_formula = Formula("A",j.root,final_formula)
+        formulae_without_functions.add(final_formula)
+    return formulae_without_functions
 def replace_equality_with_SAME(formulae):
     """ Return a set of equality-free formulae that is equivalent to the given
         function-free formulae set that may contain the equality symbol. Every
