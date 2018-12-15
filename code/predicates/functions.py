@@ -267,6 +267,8 @@ def replace_functions_with_relations_in_formulae(formulae):
             final_formula = Formula("A",j.root,final_formula)
         formulae_without_functions.add(final_formula)
     return formulae_without_functions
+
+
 def replace_equality_with_SAME(formulae):
     """ Return a set of equality-free formulae that is equivalent to the given
         function-free formulae set that may contain the equality symbol. Every
@@ -281,6 +283,39 @@ def replace_equality_with_SAME(formulae):
         assert len(formula.functions()) == 0
         assert 'SAME' not in {f[0] for f in formula.functions()}
     # Task 8.7
+    axioms = list()
+    axioms.append(Formula.parse("Ax[SAME(x,x)]"))
+    axioms.append(Formula.parse("Ax[Ay[Az[((SAME(x,y)&SAME(y,z))->SAME(x,z))]]]"))
+    axioms.append(Formula("A", "x", Formula("A", "y", Formula("->", Formula("SAME", [Term("x"), Term("y")]), Formula("SAME", [Term("y"), Term("x")])))))
+    equality_free_formula_list = list()
+    equality_free_formula_list.extend(axioms)
+    for formula in formulae:
+        equality_free_formula_list.append(__replace_equality_with_SAME(formula))
+        [equality_free_formula_list.append(__replace_equality_with_SAME_helper(relation)) for relation in formula.relations()]
+    return set(equality_free_formula_list)
+
+
+def __replace_equality_with_SAME(formula):
+    if is_relation(formula.root):
+        return formula
+    if is_unary(formula.root):
+        return Formula(formula.root, __replace_equality_with_SAME(formula.first))
+    if is_binary(formula.root):
+        return Formula(formula.root, __replace_equality_with_SAME(formula.first),__replace_equality_with_SAME(formula.second))
+    if is_equality(formula.root):
+        return Formula("SAME", [formula.first, formula.second])
+    if is_quantifier(formula.root):
+        return Formula(formula.root, formula.variable, __replace_equality_with_SAME(formula.predicate))
+
+
+def __replace_equality_with_SAME_helper(relation):
+    x_terms = [Term("x" + str(i + 1)) for i in range(relation[1])]
+    y_terms = [Term("y" + str(i + 1)) for i in range(relation[1])]
+    formula_using_and = Formula("SAME", [x_terms[0], y_terms[0]])
+    final = Formula("->", Formula(relation[0], x_terms), Formula(relation[0], y_terms))
+    for i in range(relation[1]):
+        formula_using_and = Formula("&", Formula("SAME",[x_terms[i], y_terms[i]]), formula_using_and)
+    return Formula("->", formula_using_and, final)
 
 
 def add_SAME_as_equality(model):
