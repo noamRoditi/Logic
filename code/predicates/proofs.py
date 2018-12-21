@@ -322,6 +322,10 @@ class Proof:
                     assert is_variable(argument.root)
                 assert type(justification[2][key]) is Formula
         # Task 9.5
+        for assumption in self.assumptions:
+            if assumption.instantiate(justification[2]) == self.lines[line].formula:
+                return True
+        return False
 
     def verify_t_justification(self, line):
         """ Returns whether the line with the given number is a (first-order
