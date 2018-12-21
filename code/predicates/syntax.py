@@ -136,6 +136,20 @@ class Term:
         for variable in forbidden_variables:
             assert is_variable(variable)
         # Task 9.1
+        if is_function(self.root):
+            new_args = []
+            for arg in self.arguments:
+                new_args.append(arg.substitute(substitution_map, forbidden_variables))
+            return Term(self.root,new_args)
+        else:
+            if self.root in substitution_map:
+                variables = substitution_map[self.root].variables()
+                for variable in variables:
+                    if variable in forbidden_variables:
+                        raise ForbiddenVariableError(variable)
+                return substitution_map[self.root]
+            else:
+                return Term(self.root)
 
 
 def is_equality(s):

@@ -72,6 +72,15 @@ class Model:
             return self.formula_evaluate_quantifier(formula, assignment)
 
 
+    def formula_evaluation_is_binary(self, formula, assignment):
+        if formula.root == "&":
+            return self.evaluate_formula(formula.first, assignment) and self.evaluate_formula(formula.second, assignment)
+        elif formula.root == "|":
+            return self.evaluate_formula(formula.first, assignment) or self.evaluate_formula(formula.second, assignment)
+        else:
+            return False if (self.evaluate_formula(formula.first, assignment)
+                             and not self.evaluate_formula(formula.second, assignment)) else True
+
     def formula_evaluate_quantifier(self, formula, assigment={}):
         given_assigment = None
         if formula.variable in assigment:
@@ -100,30 +109,6 @@ class Model:
             if given_assigment:
                 assigment[formula.variable] = given_assigment
             return True
-    def formula_evaluation_is_binary(self, formula, assignment):
-        if formula.root == "&":
-            return self.evaluate_formula(formula.first, assignment) and self.evaluate_formula(formula.second, assignment)
-        if formula.root == "|":
-            return self.evaluate_formula(formula.first, assignment) or self.evaluate_formula(formula.second, assignment)
-        else:
-            return False if (self.evaluate_formula(formula.first, assignment)
-                             and not self.evaluate_formula(formula.second, assignment)) else True
-
-    def formula_evaluation_is_quantifier(self,formula, assignment):
-        if formula.root == 'A':
-            for element in self.universe:
-                assignment[formula.variable] = element
-                if Model.evaluate_formula(self, formula.predicate, assignment):
-                    continue
-                return False
-            return True
-        if formula.root == 'E':
-            for element in self.universe:
-                assignment[formula.variable] = element
-                if Model.evaluate_formula(self, formula.predicate, assignment):
-                    return True
-            return False
-
     def is_model_of(self, formulae):
         """ Return whether self is a model of the given formulae. For this to be
             true, each of the formulae must be satisfied, and if the formula has
