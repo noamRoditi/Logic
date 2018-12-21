@@ -148,7 +148,7 @@ class Schema:
                 new_formula = relations_instantiation_map[formula.root][1]
                 for var in new_formula.free_variables():
                     if var not in relations_instantiation_map[formula.root][0] and var in bound_variables:
-                        raise Schema.BoundVariableError(var, new_formula.root)
+                        raise Schema.BoundVariableError(var, formula.root)
                 for index, item in enumerate(relations_instantiation_map[formula.root][0]):
                     new_relations[item] = formula_arguments[index]
                 return new_formula.substitute(new_relations)
@@ -224,7 +224,30 @@ class Schema:
                     assert is_variable(argument.root)
                 assert type(instantiation_map[key]) is Formula
         # Task 9.4
-
+        var_dic, relation_dic = dict(), dict()
+        for key, value in instantiation_map.items():
+            if is_variable(key):
+                if key not in self.templates:
+                    return None
+                var_dic[key] = Term.parse(value)
+            elif is_constant(key):
+                if key not in self.templates:
+                    return None
+                var_dic[key] = value
+            else:
+                relation = Formula.parse(key)
+                if relation.root not in self.templates:
+                    return None
+                new_arguments = []
+                for argument in relation.arguments:
+                    new_arguments.append(str(argument))
+                relation_dic[relation.root] = (new_arguments, value)
+        try:
+            return Schema.instantiate_formula(self.formula, var_dic, relation_dic, set())
+        except ForbiddenVariableError:
+            return None
+        except Schema.BoundVariableError:
+            return None
 
 class Proof:
     """A Proof of a first-order formula from a list of assumptions/axioms, each
