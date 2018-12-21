@@ -136,13 +136,16 @@ class Term:
         for variable in forbidden_variables:
             assert is_variable(variable)
         # Task 9.1
+        return self.substitute_helper(substitution_map, forbidden_variables)
+
+    def substitute_helper(self, substitution_map,forbidden_variables=set(),bound_variables=set()):
         if is_function(self.root):
             new_args = []
             for arg in self.arguments:
                 new_args.append(arg.substitute(substitution_map, forbidden_variables))
             return Term(self.root,new_args)
         else:
-            if self.root in substitution_map:
+            if self.root in substitution_map and self.root not in bound_variables:
                 variables = substitution_map[self.root].variables()
                 for variable in variables:
                     if variable in forbidden_variables:
@@ -150,8 +153,6 @@ class Term:
                 return substitution_map[self.root]
             else:
                 return Term(self.root)
-
-
 def is_equality(s):
     """ Is s the equality relation? """
     return s == '='
@@ -387,7 +388,26 @@ class Formula:
         for variable in forbidden_variables:
             assert is_variable(variable)
         # Task 9.2
+        return self.substitute_helper(substitution_map,forbidden_variables,set())
 
+    def substitute_helper(self,substitution_map, forbidden_variables=set(), bound_variables=set()):
+        if is_unary(self.root):
+            return Formula(self.root,self.first.substitute_helper(substitution_map,forbidden_variables,bound_variables))
+        if is_quantifier(self.root):
+            forbidden_vars = forbidden_variables.copy()
+            forbidden_vars.add(self.variable)
+            bound_variables.add(self.variable)
+            return Formula(self.root,self.variable,self.predicate.substitute_helper(substitution_map,
+                                                                                    forbidden_vars,bound_variables))
+        if is_relation(self.root):
+            new_args = []
+            for arg in self.arguments:
+                new_args.append(arg.substitute_helper(substitution_map,forbidden_variables,bound_variables))
+            return Formula(self.root, new_args)
+        else:
+            first = self.first.substitute_helper(substitution_map,forbidden_variables,bound_variables)
+            second = self.second.substitute_helper(substitution_map,forbidden_variables,bound_variables)
+            return Formula(self.root,first,second)
     def propositional_skeleton(self):
         """ Return a pair. The first element of the returned pair is a
             PropositionalFormula that is the skeleton of this one, where the

@@ -47,8 +47,8 @@ def test_task12(debug=False):
     test_prove_tautology(debug)
 
 if __name__ == '__main__':
-    test_task1(True)
-    # test_task2(True)
+    # test_task1(True)
+    test_task2(True)
     # test_task3(True)
     # test_task4(True)
     # test_task5(True)
