@@ -249,6 +249,7 @@ class Schema:
         except Schema.BoundVariableError:
             return None
 
+
 class Proof:
     """A Proof of a first-order formula from a list of assumptions/axioms, each
        of which is a scheme. A proof holds a list of lines. Each line in the
@@ -336,6 +337,9 @@ class Proof:
         assert len(justification) == 1
         # Task 9.7
 
+        formula = self.lines[line].formula.propositional_skeleton()[0]
+        return is_propositional_tautology(formula)
+
     def verify_mp_justification(self, line):
         """ Returns whether the line with the given number is validly obtained
             by applying Modus Ponens to previous lines whose numbers are given
@@ -348,6 +352,12 @@ class Proof:
         assert type(justification[2]) == int
         # Task 9.8
 
+        if justification[1] > line or justification[2] > line:
+            return False
+        p_implies_q = self.lines[justification[2]].formula
+        return p_implies_q.first == self.lines[justification[1]].formula and self.lines[
+            line].formula == p_implies_q.second
+
     def verify_ug_justification(self, line):
         """ Returns whether the line with the given number a valid universal
             generalization of a previous line whose number is given in its
@@ -358,6 +368,9 @@ class Proof:
         assert len(justification) == 2
         assert type(justification[1]) == int
         # Task 9.9
+        formula = self.lines[line].formula
+        return not (justification[1] >= line or formula.root == "E" or not is_quantifier(formula.root) or self.lines[
+            justification[1]].formula != formula.predicate)
 
     def verify_justification(self, line):
         """ Returns whether the line with the given number is validly justified
