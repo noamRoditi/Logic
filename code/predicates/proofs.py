@@ -333,6 +333,9 @@ class Proof:
         assert len(justification) == 1
         # Task 9.7
 
+        formula = self.lines[line].formula.propositional_skeleton()[0]
+        return is_propositional_tautology(formula)
+
     def verify_mp_justification(self, line):
         """ Returns whether the line with the given number is validly obtained
             by applying Modus Ponens to previous lines whose numbers are given

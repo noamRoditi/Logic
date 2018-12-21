@@ -5,6 +5,7 @@
 
 from propositions.syntax import Formula as PropositionalFormula, \
     is_variable as is_propositional_variable
+from predicates.util import *
 
 
 class ForbiddenVariableError(Exception):
@@ -138,12 +139,12 @@ class Term:
         # Task 9.1
         return self.substitute_helper(substitution_map, forbidden_variables)
 
-    def substitute_helper(self, substitution_map,forbidden_variables=set(),bound_variables=set()):
+    def substitute_helper(self, substitution_map, forbidden_variables=set(), bound_variables=set()):
         if is_function(self.root):
             new_args = []
             for arg in self.arguments:
                 new_args.append(arg.substitute(substitution_map, forbidden_variables))
-            return Term(self.root,new_args)
+            return Term(self.root, new_args)
         else:
             if self.root in substitution_map and self.root not in bound_variables:
                 variables = substitution_map[self.root].variables()
@@ -153,6 +154,8 @@ class Term:
                 return substitution_map[self.root]
             else:
                 return Term(self.root)
+
+
 def is_equality(s):
     """ Is s the equality relation? """
     return s == '='
@@ -387,26 +390,28 @@ class Formula:
         for variable in forbidden_variables:
             assert is_variable(variable)
         # Task 9.2
-        return self.substitute_helper(substitution_map,forbidden_variables,set())
+        return self.substitute_helper(substitution_map, forbidden_variables, set())
 
-    def substitute_helper(self,substitution_map, forbidden_variables=set(), bound_variables=set()):
+    def substitute_helper(self, substitution_map, forbidden_variables=set(), bound_variables=set()):
         if is_unary(self.root):
-            return Formula(self.root,self.first.substitute_helper(substitution_map,forbidden_variables,bound_variables))
+            return Formula(self.root,
+                           self.first.substitute_helper(substitution_map, forbidden_variables, bound_variables))
         if is_quantifier(self.root):
             forbidden_vars = forbidden_variables.copy()
             forbidden_vars.add(self.variable)
             bound_variables.add(self.variable)
-            return Formula(self.root,self.variable,self.predicate.substitute_helper(substitution_map,
-                                                                                    forbidden_vars,bound_variables))
+            return Formula(self.root, self.variable, self.predicate.substitute_helper(substitution_map,
+                                                                                      forbidden_vars, bound_variables))
         if is_relation(self.root):
             new_args = []
             for arg in self.arguments:
-                new_args.append(arg.substitute_helper(substitution_map,forbidden_variables,bound_variables))
+                new_args.append(arg.substitute_helper(substitution_map, forbidden_variables, bound_variables))
             return Formula(self.root, new_args)
         else:
-            first = self.first.substitute_helper(substitution_map,forbidden_variables,bound_variables)
-            second = self.second.substitute_helper(substitution_map,forbidden_variables,bound_variables)
-            return Formula(self.root,first,second)
+            first = self.first.substitute_helper(substitution_map, forbidden_variables, bound_variables)
+            second = self.second.substitute_helper(substitution_map, forbidden_variables, bound_variables)
+            return Formula(self.root, first, second)
+
     def propositional_skeleton(self):
         """ Return a pair. The first element of the returned pair is a
             PropositionalFormula that is the skeleton of this one, where the
@@ -416,6 +421,25 @@ class Formula:
             variable names in the propositional formula to subformulae of the
             original formula """
         # Task 9.6
+        z_dict = dict()
+        return self.propositional_skeleton_helper(z_dict), {y: x for x, y in z_dict.items()}
+
+    def propositional_skeleton_helper(self, z_dict):
+        """ Recursive Helper function. This function return a PropositionalFormula that is the skeleton
+            of this one, with the variables in the Formula being z1, z2 etc. The Recursive function also
+            keeps track of the  previous z-items that were created, to avoid double naming for identical
+            objects.
+            For unary and binary operands, the function goes deeper into the recursion, and otherwise
+            we create a new z-item."""
+        if self in z_dict:
+            return z_dict[self]
+        if is_unary(self.root):
+            return PropositionalFormula(self.root, self.first.propositional_skeleton_helper(z_dict))
+        if is_binary(self.root):
+            return PropositionalFormula(self.root, self.first.propositional_skeleton_helper(z_dict),
+                                        self.second.propositional_skeleton_helper(z_dict))
+        z_dict[self] = PropositionalFormula(next(fresh_variable_name_generator))
+        return z_dict[self]
 
     @staticmethod
     def from_propositional_skeleton(skeleton, substitution_map):
