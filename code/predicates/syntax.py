@@ -223,26 +223,25 @@ class Formula:
         """ Return the usual (infix for operators and equality, functional for
             other relations) representation of self """
         # Task 7.2
+        if is_constant(self.root) or is_variable(self.root):
+            return '(' + self.root + ')'
         if is_unary(self.root):
-            return self.root + str(self.first)
-        elif is_quantifier(self.root):
-            # if this is a quantifier with a formula inside the [] remove the ()
-            predicate = str(self.predicate)
-            if predicate[0] == '(':
-                predicate = predicate[1:len(predicate) - 1]
-            return self.root + self.variable + '[' + predicate + ']'
-        elif is_relation(self.root):
-            result = self.root + '('
-            for term in self.arguments:
-                result = result + str(term) + ','
-            if len(self.arguments) > 0:
-                return result[:len(result) - 1] + ')'
-            else:
-                return result + ')'
-        else:
-            if is_equality(self.root):
-                return str(self.first) + self.root + str(self.second)
-            return '(' + str(self.first) + self.root + str(self.second) + ')'
+            return str(self.root) + str(self.first)
+        if is_binary(self.root):
+            return "(" + str(self.first) + self.root + str(self.second) + ")"
+        if is_equality(self.root):
+            return str(self.first) + self.root + str(self.second)
+        if is_quantifier(self.root):
+            return str(self.root) + self.variable + '[' + str(self.predicate) + "]"
+        return Formula.__term__repr(self)
+
+    def __term__repr(self):
+        term = str(self.root) + "("
+        for argument in self.arguments:
+            term = term + str(argument) + ","
+        if term[-1] == ",":
+            return term[:-1] + ")"
+        return term + ")"
 
     def __eq__(self, other):
         return type(other) is Formula and str(self) == str(other)

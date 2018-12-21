@@ -6,6 +6,7 @@
 from propositions.semantics import is_tautology as is_propositional_tautology
 from predicates.syntax import *
 
+
 class Schema:
     """ A schema of first-order formulae. A schema is given by an object of
         type Formula together with a set of constant, variable, and relation
@@ -112,13 +113,57 @@ class Schema:
         assert type(relations_instantiation_map) is dict
         for relation in relations_instantiation_map:
             assert is_relation(relation)
-            formal_parameters,template = relations_instantiation_map[relation]
+            formal_parameters, template = relations_instantiation_map[relation]
             for parameter in formal_parameters:
                 assert is_variable(parameter)
             assert type(template) is Formula
         for variable in bound_variables:
             assert is_variable(variable)
         # Task 9.3
+
+        if is_unary(formula.root):
+            first = Schema.instantiate_formula(formula.first,
+                                               constants_and_variables_instantiation_map,
+                                               relations_instantiation_map,
+                                               bound_variables)
+            return Formula(formula.root, first)
+        if is_binary(formula.root):
+            first = Schema.instantiate_formula(formula.first,
+                                               constants_and_variables_instantiation_map,
+                                               relations_instantiation_map,
+                                               bound_variables)
+            second = Schema.instantiate_formula(formula.second,
+                                                constants_and_variables_instantiation_map,
+                                                relations_instantiation_map,
+                                                bound_variables)
+            return Formula(formula.root, first, second)
+        if is_equality(formula.root):
+            return formula.substitute(constants_and_variables_instantiation_map)
+        if is_relation(formula.root):
+            formula_arguments = list()
+            for arg in formula.arguments:
+                formula_arguments.append(arg.substitute(constants_and_variables_instantiation_map))
+            if formula.root in relations_instantiation_map:
+                new_relations = dict()
+                new_formula = relations_instantiation_map[formula.root][1]
+                for var in new_formula.free_variables():
+                    if var not in relations_instantiation_map[formula.root][0] and var in bound_variables:
+                        raise Schema.BoundVariableError(var, new_formula.root)
+                for index, item in enumerate(relations_instantiation_map[formula.root][0]):
+                    new_relations[item] = formula_arguments[index]
+                return new_formula.substitute(new_relations)
+            else:
+                return Formula(formula.root, formula_arguments)
+        if is_quantifier(formula.root):
+            var = formula.variable
+            if var in constants_and_variables_instantiation_map:
+                var = str(constants_and_variables_instantiation_map[var])
+            bound_variables.add(var)
+            return Formula(formula.root, var,
+                           Schema.instantiate_formula(formula.predicate,
+                                                      constants_and_variables_instantiation_map,
+                                                      relations_instantiation_map,
+                                                      bound_variables))
 
     def instantiate(self, instantiation_map):
         """ Return the first-order formula obtained by applying the mapping
@@ -180,6 +225,7 @@ class Schema:
                 assert type(instantiation_map[key]) is Formula
         # Task 9.4
 
+
 class Proof:
     """A Proof of a first-order formula from a list of assumptions/axioms, each
        of which is a scheme. A proof holds a list of lines. Each line in the
@@ -219,7 +265,7 @@ class Proof:
 
         def __repr__(self):
             return str(self.formula) + "     {" + str(self.justification) + "}"
-    
+
     def __repr__(self):
         s = "Assumptions/Axioms:\n"
         for assumption in self.assumptions:
@@ -228,7 +274,7 @@ class Proof:
         for line in self.lines:
             s = s + str(line) + "\n"
         return s
-        
+
     def verify_a_justification(self, line):
         """ Returns whether the line with the given number is a valid
             instantiation of an assumption/axiom of this proof given in its
@@ -311,13 +357,14 @@ class Proof:
                 return False
         return True
 
+
 from propositions.proofs import Proof as PropositionalProof, \
-                                InferenceRule as PropositionalInferenceRule
+    InferenceRule as PropositionalInferenceRule
 from propositions.axiomatic_systems import AXIOMATIC_SYSTEM as \
-                                           PROPOSITIONAL_AXIOMATIC_SYSTEM, \
-                                           MP, I0, I1, I2, I3, N, NI, NN, R
+    PROPOSITIONAL_AXIOMATIC_SYSTEM, \
+    MP, I0, I1, I2, I3, N, NI, NN, R
 from propositions.tautology import prove_tautology as \
-                                   prove_propositional_tautology
+    prove_propositional_tautology
 
 # Schemata corresponding to the propositional-logic axioms for implies and not
 I0_SCHEMA = Schema(Formula.parse('(P()->P())'), {'P'})
@@ -325,10 +372,10 @@ I1_SCHEMA = Schema(Formula.parse('(Q()->(P()->Q()))'), {'P', 'Q'})
 I2_SCHEMA = Schema(Formula.parse(
     '((P()->(Q()->R()))->((P()->Q())->(P()->R())))'), {'P', 'Q', 'R'})
 I3_SCHEMA = Schema(Formula.parse('(~P()->(P()->Q()))'), {'P', 'Q'})
-N_SCHEMA  = Schema(Formula.parse('((~Q()->~P())->(P()->Q()))'), {'P', 'Q'})
+N_SCHEMA = Schema(Formula.parse('((~Q()->~P())->(P()->Q()))'), {'P', 'Q'})
 NI_SCHEMA = Schema(Formula.parse('(P()->(~Q()->~(P()->Q())))'), {'P', 'Q'})
 NN_SCHEMA = Schema(Formula.parse('(P()->~~P())'), {'P'})
-R_SCHEMA  = Schema(Formula.parse(
+R_SCHEMA = Schema(Formula.parse(
     '((Q()->P())->((~Q()->P())->P()))'), {'P', 'Q'})
 
 PROPOSITIONAL_AXIOMATIC_SYSTEM_SCHEMATA = {I0_SCHEMA, I1_SCHEMA, I2_SCHEMA,
@@ -336,8 +383,9 @@ PROPOSITIONAL_AXIOMATIC_SYSTEM_SCHEMATA = {I0_SCHEMA, I1_SCHEMA, I2_SCHEMA,
                                            NN_SCHEMA, R_SCHEMA}
 
 PROPOSITIONAL_AXIOM_TO_SCHEMA = {
-        I0: I0_SCHEMA, I1: I1_SCHEMA, I2: I2_SCHEMA, I3: I3_SCHEMA, N: N_SCHEMA,
-        NI: NI_SCHEMA, NN: NN_SCHEMA, R: R_SCHEMA}
+    I0: I0_SCHEMA, I1: I1_SCHEMA, I2: I2_SCHEMA, I3: I3_SCHEMA, N: N_SCHEMA,
+    NI: NI_SCHEMA, NN: NN_SCHEMA, R: R_SCHEMA}
+
 
 def axiom_specialization_map_to_schema_instantiation_map(
         propositional_specialization_map, substitution_map):
@@ -360,6 +408,7 @@ def axiom_specialization_map_to_schema_instantiation_map(
                type(substitution_map[key]) is Formula
     # Task 9.11.1
 
+
 def prove_from_skeleton_proof(formula, skeleton_proof, substitution_map):
     """ Given a predicate-logic formula and a propositional proof from no
         assumptions, via AXIOMATIC_SYSTEM, of the propositional skeleton of
@@ -375,6 +424,7 @@ def prove_from_skeleton_proof(formula, skeleton_proof, substitution_map):
     assert Formula.from_propositional_skeleton(
         skeleton_proof.statement.conclusion, substitution_map) == formula
     # Task 9.11.2
+
 
 def prove_tautology(tautology):
     """ Return a proof of the given predicate-logic tautology from the axioms
