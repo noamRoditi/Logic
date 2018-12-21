@@ -452,3 +452,7 @@ class Formula:
             assert is_propositional_variable(key) and \
                    type(substitution_map[key]) is Formula
         # Task 9.10
+        formula_str = str(skeleton)
+        for key in substitution_map:
+            formula_str = formula_str.replace(key, str(substitution_map[key]))
+        return Formula.parse(formula_str)
