@@ -191,8 +191,8 @@ class Prover:
         formula = self.proof.lines[line_number].formula
         instantiated_predicate = formula.predicate.substitute({formula.variable: Term('v')})
         step1 = self.add_instantiated_assumption(Formula("->", formula, instantiation),
-                                                 Prover.UI, {'R(v)': instantiated_predicate, 'c': term,
-                                                             'x': formula.variable})
+                                                 Prover.UI, {'R(v)': instantiated_predicate, "c": term,
+                                                             "x": formula.variable})
         return self.add_mp(instantiation, line_number, step1)
 
     def add_tautological_inference(self, conclusion, line_numbers):
@@ -212,14 +212,15 @@ class Prover:
             assert line_number < len(self.proof.lines)
         # Task 10.2
         line_numbers = [x for x in line_numbers]
-        current = Formula("->", self.proof.lines[line_numbers[-1]].formula, conclusion)
+        inference = Formula("->", self.proof.lines[line_numbers[-1]].formula, conclusion)
         for line_num in reversed(line_numbers[:-1]):
-            current = Formula("->", self.proof.lines[line_num].formula, current)
-        second_MP_just = self.add_tautology(current)
+            inference = Formula("->", self.proof.lines[line_num].formula, inference)
+        second_justification = self.add_tautology(inference)
         for line_num in line_numbers:
-            second_MP_just = self.add_mp(current.second, line_num, second_MP_just)
-            current = current.second
-        return second_MP_just
+            inference_second = inference.second
+            second_justification = self.add_mp(inference_second, line_num, second_justification)
+            inference = inference_second
+        return second_justification
 
     def add_existential_derivation(self, statement, line_number1, line_number2):
         """ Add a sequence of validly justified lines to the proof being
@@ -247,13 +248,12 @@ class Prover:
         line1_formula = self.proof.lines[line_number1].formula
         line2_formula = self.proof.lines[line_number2].formula
         var = line1_formula.variable
-        step1 = self.add_ug(Formula('A', var, line2_formula), line_number2)
-        step2_formula = Formula("->", Formula('&', self.proof.lines[step1].formula, line1_formula),
+        step1 = self.add_ug(Formula('A', line1_formula.variable, line2_formula), line_number2)
+        step2 = Formula("->", Formula('&', self.proof.lines[step1].formula, line1_formula),
                                 line2_formula.second)
-        instantiated_line1_formula = line1_formula.predicate.substitute({var: Term('v')})
-        step2 = self.add_instantiated_assumption(step2_formula, Prover.ES,
+        step2 = self.add_instantiated_assumption(step2, Prover.ES,
                                                  {'x': var, 'Q()': line2_formula.second,
-                                                  'R(v)': instantiated_line1_formula})
+                                                  'R(v)': line1_formula.predicate.substitute({var: Term('v')})})
         return self.add_tautological_inference(statement, {line_number1, step1, step2})
 
     def add_flipped_equality(self, flipped, line_number):
@@ -273,18 +273,15 @@ class Prover:
         assert self.proof.lines[line_number].formula == \
                Formula('=', flipped.second, flipped.first)
         # Task 10.6
-        to_flip = flipped
-        x = to_flip.second
-        y = to_flip.first
-        step1 = self.add_instantiated_assumption(Formula('=', x, x), Prover.RX, {'c': str(x)})
-        me_expression = Formula('->',
-                                Formula('=', x, y),
+        y = flipped.first
+        x = flipped.second
+        step1 = self.add_instantiated_assumption(Formula('=', x, x), Prover.RX, {'c': x})
+        me_expression = Formula('->', Formula('=', x, y),
                                 Formula('->', Formula('=', x, x), Formula('=', y, x)))
         step2 = self.add_instantiated_assumption(me_expression, Prover.ME,
-                                                 {'c': str(x), 'd': str(y), 'R(v)': 'v=' + str(x)})
+                                                 {'c': x, 'd': y, 'R(v)': 'v=' + str(x)})
         step3 = self.add_mp(me_expression.second, line_number, step2)
-        step4 = self.add_mp(me_expression.second.second, step1, step3)
-        return step4
+        return self.add_mp(me_expression.second.second, step1, step3)
 
     def add_free_instantiation(self, instantiation, line_number,
                                substitution_map):
