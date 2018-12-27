@@ -224,7 +224,8 @@ class Schema:
                     assert is_variable(argument.root)
                 assert type(instantiation_map[key]) is Formula
         # Task 9.4
-        var_dic, relation_dic = dict(), dict()
+        var_dic = {}
+        relation_dic = {}
         for key, value in instantiation_map.items():
             if is_variable(key):
                 if key not in self.templates:
