@@ -245,15 +245,15 @@ class Prover:
         assert self.proof.lines[line_number1].formula.variable not in \
                statement.free_variables()
         # Task 10.3
-        line1_formula = self.proof.lines[line_number1].formula
-        line2_formula = self.proof.lines[line_number2].formula
-        var = line1_formula.variable
-        step1 = self.add_ug(Formula('A', line1_formula.variable, line2_formula), line_number2)
-        step2 = Formula("->", Formula('&', self.proof.lines[step1].formula, line1_formula),
-                                line2_formula.second)
+        step1 = self.add_ug(Formula('A', self.proof.lines[line_number1].formula.variable,
+                                    self.proof.lines[line_number2].formula), line_number2)
+        step2 = Formula("->", Formula('&', self.proof.lines[step1].formula, self.proof.lines[line_number1].formula),
+                        self.proof.lines[line_number2].formula.second)
         step2 = self.add_instantiated_assumption(step2, Prover.ES,
-                                                 {'x': var, 'Q()': line2_formula.second,
-                                                  'R(v)': line1_formula.predicate.substitute({var: Term('v')})})
+                                                 {'x': self.proof.lines[line_number1].formula.variable,
+                                                  'Q()': self.proof.lines[line_number2].formula.second,
+                                                  'R(v)': self.proof.lines[line_number1].formula.predicate.substitute(
+                                                      {self.proof.lines[line_number1].formula.variable: Term('v')})})
         return self.add_tautological_inference(statement, {line_number1, step1, step2})
 
     def add_flipped_equality(self, flipped, line_number):
@@ -273,15 +273,15 @@ class Prover:
         assert self.proof.lines[line_number].formula == \
                Formula('=', flipped.second, flipped.first)
         # Task 10.6
-        y = flipped.first
-        x = flipped.second
-        step1 = self.add_instantiated_assumption(Formula('=', x, x), Prover.RX, {'c': x})
-        me_expression = Formula('->', Formula('=', x, y),
-                                Formula('->', Formula('=', x, x), Formula('=', y, x)))
-        step2 = self.add_instantiated_assumption(me_expression, Prover.ME,
-                                                 {'c': x, 'd': y, 'R(v)': 'v=' + str(x)})
-        step3 = self.add_mp(me_expression.second, line_number, step2)
-        return self.add_mp(me_expression.second.second, step1, step3)
+        first, second = flipped.first, flipped.second
+        me = Formula('->', Formula('=', second, first),
+                                Formula('->', Formula('=', second, second), Formula('=', first, second)))
+        mid_step = self.add_instantiated_assumption(me, Prover.ME,
+                                                 {'c': second, 'd': first, 'R(v)': 'v=' + str(second)})
+        last_step = self.add_mp(me.second, line_number, mid_step)
+        return self.add_mp(me.second.second,
+                           self.add_instantiated_assumption(Formula('=', second, second), Prover.RX, {'c': second}),
+                           last_step)
 
     def add_free_instantiation(self, instantiation, line_number,
                                substitution_map):
@@ -313,33 +313,33 @@ class Prover:
                self.proof.lines[line_number].formula.substitute(
                    substitution_map)
         # Task 10.7
-        final_dict = dict()
-        z_var = fresh_variable_name_generator
-        formula = self.proof.lines[line_number].formula
-        line = line_number
-        for key in substitution_map:
-            z_dict = dict()
-            current_z = next(z_var)
-            z_dict[key] = Term.parse(current_z)
-            final_dict[current_z] = substitution_map[key]
-            formula = formula.substitute(z_dict)
-            ug_line = self.add_ug(Formula("A", key, self.proof.lines[
-                line].formula),line)
+        line, formula, final_dict = self.add_free_instantiation_helper(line_number, substitution_map)
+        for k in final_dict:
+            variable_dic = dict()
+            variable_dic[k] = Term.parse(str(final_dict[k]))
             line = self.add_universal_instantiation(
-                str(formula),ug_line, current_z)
-
-        for key in final_dict:
-            var_dict = dict()
-            term_val = Term.parse(str(final_dict[key]))
-            var_dict[key] = term_val
-            formula = formula.substitute(var_dict)
-            ug_line = self.add_ug(Formula("A", key, self.proof.lines[
-                line].formula),line)
-            line = self.add_universal_instantiation(
-                str(formula),ug_line, final_dict[key])
+                str(formula.substitute(variable_dic)),
+                self.add_ug(Formula("A", k, self.proof.lines[line].formula),line),
+                final_dict[k])
+            formula = formula.substitute(variable_dic)
         return line
 
-
+    def add_free_instantiation_helper(self, line_number, substitution_map):
+        line = line_number
+        current_formula = self.proof.lines[line_number].formula
+        result_dic = dict()
+        z_var_name = fresh_variable_name_generator
+        for key in substitution_map:
+            current_z = next(z_var_name)
+            z_dict = dict()
+            z_dict[key] = Term.parse(current_z)
+            result_dic[current_z] = substitution_map[key]
+            current_formula = current_formula.substitute(z_dict)
+            line = self.add_universal_instantiation(
+                str(current_formula),
+                self.add_ug(Formula("A", key, self.proof.lines[line].formula), line),
+                current_z)
+        return line, current_formula, result_dic
     def add_substituted_equality(self, substituted, line_number,
                                  term_with_free_v):
         """ Add a sequence of validly justified lines to the proof being
@@ -371,23 +371,18 @@ class Prover:
                            {'v': self.proof.lines[line_number].formula.second}))
         # Task 10.8
         formula = self.proof.lines[line_number].formula
-        term_free_v = term_with_free_v
-        left = formula.first
-        right = formula.second
-        c =  term_free_v.substitute({"v":left})
-        d = term_free_v.substitute({"v":right})
-        rx = self.add_instantiated_assumption(str(c) + "=" + str(c),
-                                              Prover.RX, {"c": str(c)})
-
-        str_me = "(" + str(formula) + "->(" + str(c) + "=" + str(
-            c) + "->" + str(Formula("=",c,d)) + "))"
-
-        me = self.add_instantiated_assumption(str_me, Prover.ME,
-            {"c": str(left), "d": str(right),"R(v)": str(Formula("=", c,term_free_v))})
-
-        first_mp = self.add_mp(Formula.parse(str_me).second, line_number, me)
-        sec_mp = self.add_mp(substituted, rx, first_mp)
-        return sec_mp
+        c = term_with_free_v.substitute({'v': formula.first})
+        formula_rx = Formula('=', c, c)
+        formula_me = Formula("->", formula, Formula("->",
+                                                formula_rx,
+                                                substituted))
+        mp = self.add_mp(formula_me.second,
+                               line_number,
+                               self.add_instantiated_assumption(formula_me, Prover.ME,
+                                                                {"c": str(formula.first), "d": str(formula.second),
+                                                                 "R(v)": str(Formula("=", c, term_with_free_v))}))
+        return self.add_mp(substituted,
+                           self.add_instantiated_assumption(formula_rx,Prover.RX, {"c": str(c)}), mp)
 
     def _add_chained_two_equalities(self, line_number1, line_number2):
         """ Add a sequence of validly justified lines to the proof being
@@ -408,19 +403,16 @@ class Prover:
         assert self.proof.lines[line_number1].formula.second == \
                self.proof.lines[line_number2].formula.first
         # Task 10.9.1
-        formula_1 = self.proof.lines[line_number1].formula
-        formula_2 = self.proof.lines[line_number2].formula
-        formula_1_flip = Formula("=",formula_1.second, formula_1.first)
-        formula_1_flip_line = self.add_flipped_equality(str(formula_1_flip),
-                                                        line_number1)
-        me = Formula("->",formula_1_flip, Formula("->",formula_2, Formula(
-            "=",formula_1.first, formula_2.second)))
-        me_line = self.add_instantiated_assumption(str(me),Prover.ME,{"c":str(
-            formula_1_flip.first),"d" :str(formula_1_flip.second),"R(v)" :
-            "v="+ str(formula_2.second) })
-        mp_1 = self.add_mp(me.second, formula_1_flip_line, me_line)
-        mp_2 = self.add_mp(me.second.second,line_number2,mp_1)
-        return mp_2
+        first_formula = self.proof.lines[line_number1].formula
+        second_formula = self.proof.lines[line_number2].formula
+        flipped_formula_1 = Formula("=",first_formula.second, first_formula.first)
+        equal_formula = Formula('=', first_formula.first, second_formula.second)
+        formula_implies = Formula("->", second_formula, equal_formula)
+        line_flipped = self.add_flipped_equality(str(flipped_formula_1),line_number1)
+        me = Formula("->", flipped_formula_1, formula_implies)
+        mp = self.add_mp(me.second, line_flipped, self.add_instantiated_assumption(str(me), Prover.ME, {"R(v)" :
+            "v="+ str(second_formula.second),"c":str(flipped_formula_1.first),"d" :str(flipped_formula_1.second)}))
+        return self.add_mp(me.second.second, line_number2, mp)
 
     def add_chained_equality(self, chained, line_numbers):
         """ Add a sequence of validly justified lines to the proof being
@@ -451,8 +443,10 @@ class Prover:
         assert self.proof.lines[line_numbers[-1]].formula.second == \
                chained.second
         # Task 10.9.2
-        line = line_numbers[0]
-        for i in range(1, len(line_numbers)):
-            line = self._add_chained_two_equalities(line,
-                                                    line_numbers[i])
-        return line
+        line_result = line_numbers[0]
+        num_of_lines = len(line_numbers)
+        i = 1
+        while i < num_of_lines:
+            line_result = self._add_chained_two_equalities(line_result,line_numbers[i])
+            i += 1
+        return line_result
