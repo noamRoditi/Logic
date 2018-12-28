@@ -205,7 +205,7 @@ def homework_proof(print_as_proof_forms=False):
                                               {step6})
     step9 = prover.add_tautological_inference('((Homework(x)&Reading(x))->Ex[(Reading(x)&~Fun(x))])',
                                               {step7, step8})
-    prover.add_existential_derivation('Ex[(Reading(x)&~Fun(x))]',step2, step9)
+    prover.add_existential_derivation('Ex[(Reading(x)&~Fun(x))]', step2, step9)
     return prover.proof
 
 
@@ -309,7 +309,7 @@ def unique_zero_proof(print_as_proof_forms=False):
                     print_as_proof_forms)
     # Task 10.10
 
-    step1 = prover.add_substituted_equality('plus(minus(a),plus(a,c))=plus(''minus(a),a)',
+    step1 = prover.add_substituted_equality('plus(minus(a),plus(a,c))=plus(minus(a),a)',
                                             prover.add_assumption('plus(a,c)=a'), 'plus(minus(a),v)')
     step2 = prover.add_free_instantiation('plus(plus(minus(a),a),c)=plus(minus(a),plus(a,c))',
                                           prover.add_assumption('plus(plus(x,y),z)=plus(x,plus(y,z))'),
@@ -318,11 +318,11 @@ def unique_zero_proof(print_as_proof_forms=False):
     step4 = prover.add_chained_equality("plus(plus(minus(a),a),c)=plus(""minus(a),a)", [step2, step1])
     step5 = prover.add_chained_equality("plus(plus(minus(a),a),c)=0", [step4, step3])
     step6 = prover.add_substituted_equality("plus(plus(minus(a),a),c)=plus(""0,c)", step3, 'plus(v,c)')
-    step_6_flip = prover.add_flipped_equality("plus(0,c)=plus(plus(minus(a)," "a),c)", step6)
-    step6_conc = prover.add_chained_equality("plus(0,c)=0", [step_6_flip, step5])
-    step7 = prover.add_free_instantiation('plus(0,c)=c', prover.add_assumption('plus(0,x)=x'), {"x": 'c'})
-    step8 = prover.add_flipped_equality('c=plus(0,c)', step7)
-    prover.add_chained_equality('c=0', [step8, step6_conc])
+    step7 = prover.add_flipped_equality("plus(0,c)=plus(plus(minus(a)," "a),c)", step6)
+    step8 = prover.add_chained_equality("plus(0,c)=0", [step7, step5])
+    step9 = prover.add_free_instantiation('plus(0,c)=c', prover.add_assumption('plus(0,x)=x'), {"x": 'c'})
+    step10 = prover.add_flipped_equality('c=plus(0,c)', step9)
+    prover.add_chained_equality('c=0', [step10, step8])
 
     return prover.proof
 
@@ -340,51 +340,41 @@ def multiply_zero_proof(print_as_proof_forms=False):
         being constructed """
     prover = Prover(FIELD_AXIOMS, 'times(0,x)=0', print_as_proof_forms)
     # Task 10.11
-    assumption_1 = prover.add_assumption('plus(0,x)=x')
-    instanced_2 = prover.add_free_instantiation('plus(0,times(x,0))=times(x,'
-                                                '0)', assumption_1, {'x': 'times(x,0)'})
-    assumption_3 = prover.add_assumption('times(x,y)=times(y,x)')
-    instanced_4 = prover.add_free_instantiation('times(0,x)=times(x,0)',
-                                                assumption_3, {'x': '0', 'y': 'x'})
-    flipped_5 = prover.add_flipped_equality("times(x,0)=plus(0,times(x,0))",
-                                            instanced_2)
-    assumption_6 = prover.add_assumption('plus(minus(x),x)=0')
-    instanced_7 = prover.add_free_instantiation(
-        "plus(minus(times(x,0)),times(x,0))=0", assumption_6,
+    step1 = prover.add_assumption('plus(0,x)=x')
+    step2 = prover.add_free_instantiation('plus(0,times(x,0))=times(x,'
+                                          '0)', step1, {'x': 'times(x,0)'})
+    step3 = prover.add_flipped_equality("times(x,0)=plus(0,times(x,0))",
+                                        step2)
+    step4 = prover.add_assumption('times(x,y)=times(y,x)')
+    step5 = prover.add_free_instantiation('times(0,x)=times(x,0)',
+                                          step4, {'x': '0', 'y': 'x'})
+
+    step6 = prover.add_assumption('plus(minus(x),x)=0')
+    step7 = prover.add_free_instantiation(
+        "plus(minus(times(x,0)),times(x,0))=0", step6,
         {'x': 'times(x,0)'})
-    flipped_8 = prover.add_flipped_equality(
-        "0=plus(minus(times(x,0)),times(x,0))", instanced_7)
-    substituted_9 = prover.add_substituted_equality(
-        "plus(0,times(x,0))=plus(plus(minus(times(x,0)),times(x,0)),"
-        "times(x,0))", flipped_8, "plus(v,times(x,0))")
-    assumption_10 = prover.add_assumption('plus(plus(x,y),z)=plus(x,plus(y,'
-                                          'z))')
-    instanced_11 = prover.add_free_instantiation(
-        'plus(plus(minus(times(x,0)),times(x,0)),times(x,0))=plus(minus('
-        'times(x,0)),plus(times(x,0),times(x,0)))', assumption_10,
+    step8 = prover.add_flipped_equality(
+        "0=plus(minus(times(x,0)),times(x,0))", step7)
+    step9 = prover.add_substituted_equality(
+        "plus(0,times(x,0))=plus(plus(minus(times(x,0)),times(x,0)),times(x,0))", step8, "plus(v,times(x,0))")
+    step10 = prover.add_assumption('plus(plus(x,y),z)=plus(x,plus(y,z))')
+    step11 = prover.add_free_instantiation(
+        'plus(plus(minus(times(x,0)),times(x,0)),times(x,0))=plus(minus(times(x,0)),plus(times(x,0),times(x,0)))',
+        step10,
         {'x': 'minus(times(x,0))', 'y': 'times(x,0)', 'z': 'times(x,0)'})
-    assumption_12 = prover.add_assumption(
-        'times(x,plus(y,z))=plus(times(x,y),times(x,z))')
-    instanced_13 = prover.add_free_instantiation(
-        'times(x,plus(0,0))=plus(times(x,0),times(x,0))', assumption_12,
-        {'x': 'x', 'y': '0', 'z': '0'})
-    flipped_14 = prover.add_flipped_equality(
-        'plus(times(x,0),times(x,0))=times(x,plus(0,0))', instanced_13)
-    substituted_15 = prover.add_substituted_equality(
-        'plus(minus(times(x,0)),plus(times(x,0),'
-        'times(x,0)))=plus(minus(times(x,0)),times(x,plus(0,0)))',
-        flipped_14, "plus(minus(times(x,0)),v)")
-    instanced_16 = prover.add_free_instantiation('plus(0,0)=0',
-                                                 assumption_1, {'x': '0'})
-    substituted_17 = prover.add_substituted_equality(
-        'plus(minus(times(x,0)),times(x,plus(0,0)))=plus(minus(times(x,'
-        '0)),times(x,0))', instanced_16, "plus(minus(times(x,0)),times(x,v))")
-    instanced_18 = prover.add_free_instantiation(
-        "plus(minus(times(x,0)),times(x,0))=0", assumption_6, {'x': 'times('
-                                                                    'x,0)'})
-    prover.add_chained_equality("times(0,x)=0",
-                                [instanced_4, flipped_5, substituted_9, instanced_11, substituted_15,
-                                 substituted_17, instanced_18])
+    step12 = prover.add_assumption('times(x,plus(y,z))=plus(times(x,y),times(x,z))')
+    step13 = prover.add_free_instantiation('times(x,plus(0,0))=plus(times(x,0),times(x,0))', step12,
+                                           {'x': 'x', 'y': '0', 'z': '0'})
+    step14 = prover.add_flipped_equality('plus(times(x,0),times(x,0))=times(x,plus(0,0))', step13)
+    step15 = prover.add_substituted_equality('plus(minus(times(x,0)),plus(times(x,0),'
+                                             'times(x,0)))=plus(minus(times(x,0)),times(x,plus(0,0)))', step14,
+                                             "plus(minus(times(x,0)),v)")
+    step16 = prover.add_free_instantiation('plus(0,0)=0', step1, {'x': '0'})
+    step17 = prover.add_substituted_equality(
+        'plus(minus(times(x,0)),times(x,plus(0,0)))=plus(minus(times(x,0)),times(x,0))', step16,
+        "plus(minus(times(x,0)),times(x,v))")
+    step18 = prover.add_free_instantiation("plus(minus(times(x,0)),times(x,0))=0", step6, {'x': 'times(x,0)'})
+    prover.add_chained_equality("times(0,x)=0", [step5, step3, step9, step11, step15, step17, step18])
     return prover.proof
 
 
@@ -417,20 +407,15 @@ def russell_paradox_proof(print_as_proof_forms=False):
         constructed """
     prover = Prover({COMPREHENSION_AXIOM}, '(z=z&~z=z)', print_as_proof_forms)
     # Task 10.13
-    step1 = prover.add_instantiated_assumption('Ey[Ax[((In(x,y)->~In(x,'
-                                               'x))&(~In(x,x)->In(x,y)))]]', COMPREHENSION_AXIOM, {"R(v)": "~In(v,v)"})
-    step2 = prover.add_instantiated_assumption('(Ax[((In(x,y)->~In(x,'
-                                               'x))&(~In(x,x)->In(x,'
-                                               'y)))]->((In(y,y)->~In(y,'
-                                               'y))&(~In(y,y)->In(y,y))))',
-                                               prover.UI,
-                                               {"R(v)": "((In(v,y)->~In(v,v))&(~In(v,v)->In(v,y))))", "c": "y"})
-    step2_5 = prover.add_tautology("(((In(y,y)->~In(y,y))&(~In(y,y)->In(y,"
-                                   "y)))->(z=z&~z=z))")
-    step3 = prover.add_tautological_inference("(Ax[((In(x,y)->~In(x,x))&(~In(x,"
-                                              "x)->In(x,y)))]->(z=z&~z=z))",
-                                              {step2, step2_5})
-    prover.add_existential_derivation("(z=z&~z=z)", step1, step3)
+    step1 = prover.add_instantiated_assumption(
+        '(Ax[((In(x,y)->~In(x,x))&(~In(x,x)->In(x,y)))]->((In(y,y)->~In(y,y))&(~In(y,y)->In(y,y))))',
+        prover.UI, {"R(v)": "((In(v,y)->~In(v,v))&(~In(v,v)->In(v,y))))", "c": "y"})
+    step2 = prover.add_instantiated_assumption('Ey[Ax[((In(x,y)->~In(x,x))&(~In(x,x)->In(x,y)))]]', COMPREHENSION_AXIOM,
+                                               {"R(v)": "~In(v,v)"})
+    step3 = prover.add_tautology("(((In(y,y)->~In(y,y))&(~In(y,y)->In(y,y)))->(z=z&~z=z))")
+    step4 = prover.add_tautological_inference("(Ax[((In(x,y)->~In(x,x))&(~In(x,x)->In(x,y)))]->(z=z&~z=z))",
+                                              {step1, step3})
+    prover.add_existential_derivation("(z=z&~z=z)", step2, step4)
     return prover.proof
 
 
