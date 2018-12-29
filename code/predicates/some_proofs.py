@@ -392,6 +392,26 @@ def peano_zero_proof(print_as_proof_forms=False):
         being constructed """
     prover = Prover(PEANO_AXIOMS, 'plus(0,x)=x', print_as_proof_forms)
     # Task 10.12
+    step1 = prover.add_free_instantiation('plus(0,0)=0',
+                                          prover.add_assumption('plus(x,0)=x'),
+                                          {'x': '0'})
+    me_formula = '(plus(0,x)=x->(plus(0,s(x))=s(plus(0,x))->plus(0,s(x))=s(x))))'
+
+    step2 = prover.add_free_instantiation('plus(0,s(x))=s(plus(0,x))',
+                                          prover.add_assumption('plus(x,s(y))=s(plus(x,y))'),
+                                          {'y': 'x','x': '0'})
+    step3 = prover.add_instantiated_assumption(me_formula, Prover.ME,
+                                               {'R(v)': 'plus(0,s(x))=s(v)',
+                                                'c': 'plus(0,x)', 'd': 'x'})
+    step4 = prover.add_tautological_inference('(plus(0,x)=x->plus(0,s(x))=s(x))',
+                                              {step3, step2})
+    step5 = prover.add_ug("Ax[(plus(0,x)=x->plus(0,s(x))=s(x))]", step4)
+    step6 = prover.add_tautological_inference('(plus(0,0)=0&Ax[(plus(0,x)=x->plus(0,s(x))=s(x))])',
+                                              {step1, step5})
+    step7 = prover.add_instantiated_assumption('((plus(0,0)=0&Ax[(plus(0,x)=x->plus(0,s(x))=s(x))])->Ax[plus(0,x)=x])',
+                                               Schema(Formula.parse('((R(0)&Ax[(R(x)->R(s(x)))])->Ax[R(x)])'), {'R'}),
+                                               {'R(v)': 'plus(0,v)=v'})
+    prover.add_universal_instantiation("plus(0,x)=x", prover.add_mp('Ax[plus(0,x)=x]', step6, step7), 'x')
     return prover.proof
 
 
