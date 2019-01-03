@@ -61,5 +61,5 @@ if __name__ == '__main__':
     test_task9(True)
     test_task10(True)
     test_task11(True)
-    # test_task12(True)
+    test_task12(True)
     test_task13(True)
