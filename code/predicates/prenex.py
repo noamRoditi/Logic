@@ -36,29 +36,6 @@ ADDITIONAL_QUANTIFICATION_AXIOMS = [
     Schema(Formula.parse('(((Q()->Ax[R(x)])->Ax[(Q()->R(x))])&'
                          '(Ax[(Q()->R(x))]->(Q()->Ax[R(x)])))'), {'x', 'R', 'Q'}),
     Schema(Formula.parse('(((Q()->Ex[R(x)])->Ex[(Q()->R(x))])&'
-                         '(Ex[(Q()->R(x))]->(Q()->Ex[R(x)])))'), {'x', 'R', 'Q'},
-           '(Ax[(R(x)&Q())]->(Ax[R(x)]&Q())))'), {'x', 'R', 'Q'},
-    Schema(Formula.parse('(((Ex[R(x)]&Q())->Ex[(R(x)&Q())])&'
-                         '(Ex[(R(x)&Q())]->(Ex[R(x)]&Q())))'), {'x', 'R', 'Q'}),
-    Schema(Formula.parse('(((Q()&Ax[R(x)])->Ax[(Q()&R(x))])&'
-                         '(Ax[(Q()&R(x))]->(Q()&Ax[R(x)])))'), {'x', 'R', 'Q'}),
-    Schema(Formula.parse('(((Q()&Ex[R(x)])->Ex[(Q()&R(x))])&'
-                         '(Ex[(Q()&R(x))]->(Q()&Ex[R(x)])))'), {'x', 'R', 'Q'}),
-    Schema(Formula.parse('(((Ax[R(x)]|Q())->Ax[(R(x)|Q())])&'
-                         '(Ax[(R(x)|Q())]->(Ax[R(x)]|Q())))'), {'x', 'R', 'Q'}),
-    Schema(Formula.parse('(((Ex[R(x)]|Q())->Ex[(R(x)|Q())])&'
-                         '(Ex[(R(x)|Q())]->(Ex[R(x)]|Q())))'), {'x', 'R', 'Q'}),
-    Schema(Formula.parse('(((Q()|Ax[R(x)])->Ax[(Q()|R(x))])&'
-                         '(Ax[(Q()|R(x))]->(Q()|Ax[R(x)])))'), {'x', 'R', 'Q'}),
-    Schema(Formula.parse('(((Q()|Ex[R(x)])->Ex[(Q()|R(x))])&'
-                         '(Ex[(Q()|R(x))]->(Q()|Ex[R(x)])))'), {'x', 'R', 'Q'}),
-    Schema(Formula.parse('(((Ax[R(x)]->Q())->Ex[(R(x)->Q())])&'
-                         '(Ex[(R(x)->Q())]->(Ax[R(x)]->Q())))'), {'x', 'R', 'Q'}),
-    Schema(Formula.parse('(((Ex[R(x)]->Q())->Ax[(R(x)->Q())])&'
-                         '(Ax[(R(x)->Q())]->(Ex[R(x)]->Q())))'), {'x', 'R', 'Q'}),
-    Schema(Formula.parse('(((Q()->Ax[R(x)])->Ax[(Q()->R(x))])&'
-                         '(Ax[(Q()->R(x))]->(Q()->Ax[R(x)])))'), {'x', 'R', 'Q'}),
-    Schema(Formula.parse('(((Q()->Ex[R(x)])->Ex[(Q()->R(x))])&'
                          '(Ex[(Q()->R(x))]->(Q()->Ex[R(x)])))'), {'x', 'R', 'Q'}),
     Schema(Formula.parse('(((R(x)->Q(x))&(Q(x)->R(x)))->'
                          '((Ax[R(x)]->Ay[Q(y)])&(Ay[Q(y)]->Ax[R(x)])))'),
@@ -228,12 +205,11 @@ def pull_out_quantifications_from_left_across_binary_operator(formula):
     assert is_binary(formula.root)
     # Task 11.7.1
     if is_quantifier_free(formula.first):
-        conclusion = Formula('&', Formula('->', formula, formula), Formula('->', formula, formula))
+        conclusion = equivalence_of(formula, formula)
         prover = Prover(ADDITIONAL_QUANTIFICATION_AXIOMS, conclusion)
         prover.add_tautology(conclusion)
         return formula, prover.proof
-    else:  # is_quantifier(formula.first):
-        # if formula.root == 'A':
+    else:  
         var = formula.first.variable
         new_quantifier = 'A'
         if formula.first.root == 'E':
@@ -244,12 +220,9 @@ def pull_out_quantifications_from_left_across_binary_operator(formula):
             new_quantifier = 'A'
         pull_binary_axiom, add_quantifier_axiom = from_left_find_axioms(formula.root, new_quantifier)
         predicate_to_recursion = Formula(formula.root, formula.first.predicate, formula.second)
-        # output of the recursion call
-        new_predicate, new_predicate_proof = \
-            pull_out_quantifications_from_left_across_binary_operator(predicate_to_recursion)
+        new_predicate, new_predicate_proof = pull_out_quantifications_from_left_across_binary_operator(predicate_to_recursion)
         first_formula = new_predicate_proof.conclusion.first.first
         second_formula = new_predicate_proof.conclusion.first.second
-        # builds formula for using axioms 15 / 16
         quantifiers_equivalence_formula = Formula('&', Formula('->',
                                                                Formula(new_quantifier, var, first_formula),
                                                                Formula(new_quantifier, var, second_formula)),
@@ -260,8 +233,7 @@ def pull_out_quantifications_from_left_across_binary_operator(formula):
                                          new_predicate_proof.conclusion,
                                          quantifiers_equivalence_formula)
         quantified_new_predicate = Formula(new_quantifier, var, new_predicate)
-        conclusion = Formula('&', Formula('->', formula, quantified_new_predicate),
-                             Formula('->', quantified_new_predicate, formula))
+        conclusion = equivalence_of(formula, quantified_new_predicate)
         prover = Prover(ADDITIONAL_QUANTIFICATION_AXIOMS, conclusion)
         last_proof_step = prover.add_proof(new_predicate_proof.conclusion, new_predicate_proof)
         quantifying_equivalent = prover.add_instantiated_assumption(add_quantifier_formula,
@@ -270,11 +242,9 @@ def pull_out_quantifications_from_left_across_binary_operator(formula):
                                                                      'R(' + var + ')': str(predicate_to_recursion),
                                                                      'Q(' + var + ')': str(new_predicate)})
         mp_step = prover.add_mp(quantifiers_equivalence_formula, last_proof_step, quantifying_equivalent)
-        # right side of Axioms 3 / 4 / 7 / 8 / 11 / 12: Ex[phi(x)] / Ax[phi(x)]
         linking_formula = Formula(new_quantifier, var, predicate_to_recursion)
         pull_binary_formula = Formula('&', Formula('->', formula, linking_formula),
                                       Formula('->', linking_formula, formula))
-        # Adds axiom 3 / 4 / 7 / 8 / 11 / 12
         axiom_instantiation_step = prover.add_instantiated_assumption(pull_binary_formula,
                                                                       pull_binary_axiom,
                                                                       {'x': var,
@@ -321,54 +291,43 @@ def pull_out_quantifications_from_right_across_binary_operator(formula):
     assert is_binary(formula.root)
     # Task 11.7.2
     if is_quantifier_free(formula.second):
-        conclusion = Formula('&', Formula('->', formula, formula), Formula('->', formula, formula))
+        conclusion = equivalence_of(formula, formula)
         prover = Prover(ADDITIONAL_QUANTIFICATION_AXIOMS, conclusion)
         prover.add_tautology(conclusion)
-        return (formula, prover.proof)
-    else:  # is_quantifier(formula.first):
-        # if formula.root == 'A':
-        var = formula.second.variable
-        quantifier = formula.second.root
-        pull_binary_axiom, add_quantifier_axiom = from_right_find_axioms(formula.root, quantifier)
-        predicate_to_recursion = Formula(formula.root, formula.first, formula.second.predicate)
-        # output of the recursion call
-        new_predicate, new_predicate_proof = \
-            pull_out_quantifications_from_right_across_binary_operator(predicate_to_recursion)
-        first_formula = new_predicate_proof.conclusion.first.first
-        second_formula = new_predicate_proof.conclusion.first.second
-        # builds formula for using axioms 15 / 16
-        quantifiers_equivalence_formula = Formula('&', Formula('->',
-                                                               Formula(quantifier, var, first_formula),
-                                                               Formula(quantifier, var, second_formula)),
-                                                  Formula('->',
-                                                          Formula(quantifier, var, second_formula),
-                                                          Formula(quantifier, var, first_formula)))
-        add_quantifier_formula = Formula('->',
-                                         new_predicate_proof.conclusion,
-                                         quantifiers_equivalence_formula)
-        quantified_new_predicate = Formula(quantifier, var, new_predicate)
-        conclusion = Formula('&', Formula('->', formula, quantified_new_predicate),
-                             Formula('->', quantified_new_predicate, formula))
-        prover = Prover(ADDITIONAL_QUANTIFICATION_AXIOMS, conclusion)
-        last_proof_step = prover.add_proof(new_predicate_proof.conclusion, new_predicate_proof)
-        quantifying_equivalent = prover.add_instantiated_assumption(add_quantifier_formula,
+        return formula, prover.proof
+
+    var = formula.second.variable
+    quantifier = formula.second.root
+    pull_binary_axiom, add_quantifier_axiom = from_right_find_axioms(formula.root, quantifier)
+    predicate_to_recursion = Formula(formula.root, formula.first, formula.second.predicate)
+    new_predicate, new_predicate_proof = pull_out_quantifications_from_right_across_binary_operator(predicate_to_recursion)
+    first_formula = new_predicate_proof.conclusion.first.first
+    second_formula = new_predicate_proof.conclusion.first.second
+    quantifiers_equivalence_formula = equivalence_of(Formula(quantifier, var, first_formula),
+                                                         Formula(quantifier, var, second_formula))
+    add_quantifier_formula = Formula('->', new_predicate_proof.conclusion, quantifiers_equivalence_formula)
+    quantified_new_predicate = Formula(quantifier, var, new_predicate)
+    conclusion = equivalence_of(formula, quantified_new_predicate)
+    prover = Prover(ADDITIONAL_QUANTIFICATION_AXIOMS, conclusion)
+    last_proof_step = prover.add_proof(new_predicate_proof.conclusion, new_predicate_proof)
+    quantifying_equivalent = prover.add_instantiated_assumption(add_quantifier_formula,
                                                                     add_quantifier_axiom,
                                                                     {'x': var, 'y': var,
                                                                      'R(' + var + ')': str(predicate_to_recursion),
                                                                      'Q(' + var + ')': str(new_predicate)})
-        mp_step = prover.add_mp(quantifiers_equivalence_formula, last_proof_step, quantifying_equivalent)
+    mp_step = prover.add_mp(quantifiers_equivalence_formula, last_proof_step, quantifying_equivalent)
         # right side of Axioms 5 / 6 / 9 / 10 / 13 / 14: Ex[phi(x)] / Ax[phi(x)]
-        linking_formula = Formula(quantifier, var, predicate_to_recursion)
-        pull_binary_formula = Formula('&', Formula('->', formula, linking_formula),
+    linking_formula = Formula(quantifier, var, predicate_to_recursion)
+    pull_binary_formula = Formula('&', Formula('->', formula, linking_formula),
                                       Formula('->', linking_formula, formula))
         # Adds axiom 5 / 6 / 9 / 10 / 13 / 14
-        axiom_instantiation_step = prover.add_instantiated_assumption(pull_binary_formula,
+    axiom_instantiation_step = prover.add_instantiated_assumption(pull_binary_formula,
                                                                       pull_binary_axiom,
                                                                       {'x': var,
                                                                        'R(' + var + ')': str(formula.second.predicate),
                                                                        'Q()': str(formula.first)})
-        prover.add_tautological_inference(str(conclusion), {mp_step, axiom_instantiation_step})
-        return quantified_new_predicate, prover.proof
+    prover.add_tautological_inference(str(conclusion), {mp_step, axiom_instantiation_step})
+    return quantified_new_predicate, prover.proof
 
 
 def pull_out_quantifications_across_binary_operator(formula):
@@ -437,18 +396,15 @@ def quantify_formula(formula, current_step, quantifiers, variables, prover):
                                     formula.first.second)
         quantified_formula = equivalence_of(quantified_first, quantified_second)
         axiom_verse = Formula("->", formula, quantified_formula)
-        axiom = ADDITIONAL_QUANTIFICATION_AXIOMS[14] if quantifiers[i] == \
-                                                        "A" else \
-            ADDITIONAL_QUANTIFICATION_AXIOMS[15]
+        axiom = ADDITIONAL_QUANTIFICATION_AXIOMS[14] if quantifiers[i] == "A" else ADDITIONAL_QUANTIFICATION_AXIOMS[15]
 
-        axiom_index = prover.add_instantiated_assumption(axiom_verse,
-                                                         axiom,
+        axiom_index = prover.add_instantiated_assumption(axiom_verse, axiom,
                                                          {"x": variable, 'y': variable, 'R({})'.format(
                                                              variable): str(formula.first.first),
                                                           'Q({})'.format(variable): str(formula.first.second)})
+        formula = quantified_formula
 
         current_step = prover.add_mp(axiom_verse.second, current_step, axiom_index)
-        formula = quantified_formula
 
     return current_step, prover
 

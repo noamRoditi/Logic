@@ -8,8 +8,10 @@ from predicates.proofs import *
 from predicates.prover import *
 
 import copy
+
 Unray_string_var = '~'
 Gorer_string_var = '->'
+
 
 def remove_assumption(proof, assumption, print_as_proof_forms=False):
     """ Given a proof, whose assumptions/axioms include Prover.AXIOMS, of a
@@ -51,9 +53,11 @@ def remove_assumption(proof, assumption, print_as_proof_forms=False):
             prover.add_tautology(Formula(Gorer_string_var, assumption, line.formula))
         elif line.justification[0] == 'MP':
             first_justification = get_number_of_line(prover.proof,
-                                                     Formula(Gorer_string_var, assumption, proof.lines[line.justification[1]].formula))
+                                                     Formula(Gorer_string_var, assumption,
+                                                             proof.lines[line.justification[1]].formula))
             second_justification = get_number_of_line(prover.proof,
-                                                      Formula(Gorer_string_var, assumption, proof.lines[line.justification[2]].formula))
+                                                      Formula(Gorer_string_var, assumption,
+                                                              proof.lines[line.justification[2]].formula))
             prover.add_tautological_inference(str(Formula(Gorer_string_var, assumption, line.formula)),
                                               {first_justification, second_justification})
         elif line.justification[0] == 'UG':
@@ -62,21 +66,21 @@ def remove_assumption(proof, assumption, print_as_proof_forms=False):
             predicate_assumption = Formula(Gorer_string_var, assumption, predicate)
             quantified_assumption_to_predicate = Formula('A', var, predicate_assumption)
             conclusion = Formula(Gorer_string_var, assumption,
-                                       Formula('A', var, predicate))
+                                 Formula('A', var, predicate))
             prover.add_mp(conclusion,
                           prover.add_ug(quantified_assumption_to_predicate,
                                         get_number_of_line(prover.proof, predicate_assumption)),
                           prover.add_instantiated_assumption(
-                            Formula(Gorer_string_var, quantified_assumption_to_predicate, conclusion),
-                            Prover.US,
-                            {'R(' + var + ')': str(predicate),
-                             'x': var, 'Q()': assumption}))
+                              Formula(Gorer_string_var, quantified_assumption_to_predicate, conclusion),
+                              Prover.US, {'R(' + var + ')': str(predicate), 'x': var, 'Q()': assumption}))
     return prover.proof
+
 
 def get_number_of_line(proof, formula_to_find):
     proof_lines = [x.formula for x in reversed(proof.lines)]
     index = proof_lines.index(formula_to_find)
     return len(proof.lines) - 1 - index
+
 
 def proof_by_contradiction(proof, assumption, print_as_proof_forms=False):
     """ Given a proof, whose assumptions/axioms include Prover.AXIOMS, of a
@@ -97,18 +101,14 @@ def proof_by_contradiction(proof, assumption, print_as_proof_forms=False):
     main_assumption = assumption
     new_proof = remove_assumption(proof, assumption, print_as_proof_forms)
     prover = Prover(new_proof.assumptions,
-                    Formula(Unray_string_var,main_assumption),
+                    Formula(Unray_string_var, main_assumption),
                     print_as_proof_forms)
-    #build new prover
+    # build new prover
     [prover._add_line(x.formula, x.justification) for x in new_proof.lines]
     index = len(prover.proof.lines) - 1
-    formula_tautology = Formula(Gorer_string_var,
-                                   Formula(Gorer_string_var, main_assumption,proof.conclusion),
-                                   Formula(Gorer_string_var, Formula(Unray_string_var, proof.conclusion),
-                                   Formula(Unray_string_var, main_assumption)))
-    prover.add_mp(formula_tautology.second.second,
-                  prover.add_tautology(Formula(Unray_string_var,proof.conclusion)),
-                  prover.add_mp(formula_tautology.second, index,
-                  prover.add_tautology(formula_tautology)))
-
+    formula_tautology = Formula(Gorer_string_var, Formula(Gorer_string_var, main_assumption, proof.conclusion),
+                                Formula(Gorer_string_var, Formula(Unray_string_var, proof.conclusion),
+                                        Formula(Unray_string_var, main_assumption)))
+    prover.add_mp(formula_tautology.second.second, prover.add_tautology(Formula(Unray_string_var, proof.conclusion)),
+                  prover.add_mp(formula_tautology.second, index, prover.add_tautology(formula_tautology)))
     return prover.proof
