@@ -168,11 +168,11 @@ def pull_out_quantifications_across_negation(formula):
 
 def find_new_q(formula):
     new_quantifier = "A"
-    if formula.first.root == "E":
+    if formula.first.root is "E":
         new_quantifier = "E"
-    if formula.root == "->" and new_quantifier == "E":
+    if new_quantifier is "E" and formula.root == "->":
         new_quantifier = "A"
-    elif formula.root == "->" and new_quantifier == "A":
+    elif new_quantifier is "A" and formula.root == "->":
         new_quantifier = "E"
     return new_quantifier
 
